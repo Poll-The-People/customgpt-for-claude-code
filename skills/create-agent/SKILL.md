@@ -188,19 +188,50 @@ Where `$INCLUDED_PATHS_JSON` is the JSON array, e.g. `["."]` or `["src/", "docs/
 
 ---
 
-## Step 9 — Offer Auto-Sync Reminders
+## Step 9 — Add Plugin Instructions to CLAUDE.md
 
-Ask the user:
-> "Would you like me to automatically remind you to sync changes with the CustomGPT agent after I make significant edits? (yes/no)"
-
-If yes, append the following block to `${FOLDER}/CLAUDE.md` (create the file if it doesn't exist). Do NOT modify any existing content in CLAUDE.md — only append.
+**Always do this step.** Append the following block to `${FOLDER}/CLAUDE.md` (create the file if it doesn't exist). Do NOT modify any existing content in CLAUDE.md — only append.
 
 ```markdown
 
 <!-- CUSTOMGPT-RAG-PLUGIN:START -->
-## CustomGPT.ai RAG Plugin — Auto-Sync
+## CustomGPT.ai RAG Search (plugin: customgpt-ai-rag)
 
-This project is connected to a CustomGPT.ai search agent via the `customgpt-ai-rag` plugin (see `.customgpt-meta.json`).
+This project has a CustomGPT.ai search agent connected (see `.customgpt-meta.json`). It provides semantic search across the entire codebase via the `customgpt-ai-rag` plugin.
+
+### When to use it
+
+Use `/ask-agent [question]` to search the codebase when:
+- You need to find where something is implemented but there are many files to search through
+- You're looking for code related to a concept, feature, or term (semantic search beats grep for this)
+- The user asks about something and you're not sure which files are relevant
+- Traditional search (Grep/Glob) would require many queries or guesswork across a large codebase
+- You need to find files by content, not just by name
+
+**Default behavior:** When this agent is available and you need to search across the project, prefer `/ask-agent` over exhaustive Grep/Glob searches. It's faster and finds semantically related code, not just exact matches. You can always follow up with Grep/Read on the specific files it points you to.
+
+### Available commands
+
+- `/ask-agent [question]` — Search the codebase. Returns an answer with source filenames you can then Read.
+- `/update-agent` — Sync changed and new files with the agent.
+- `/check-status` — Check if the agent is ready and see processing progress.
+- `/add-files [path]` — Add specific files or folders.
+- `/list-files` — See all documents in the knowledge base.
+<!-- CUSTOMGPT-RAG-PLUGIN:END -->
+```
+
+---
+
+## Step 10 — Offer Auto-Sync Reminders
+
+Ask the user:
+> "Would you like me to automatically remind you to sync changes with the CustomGPT agent after I make significant edits? (yes/no)"
+
+If yes, append the following block to `${FOLDER}/CLAUDE.md` **after** the plugin instructions block:
+
+```markdown
+<!-- CUSTOMGPT-RAG-PLUGIN-AUTOSYNC:START -->
+### Auto-sync reminders
 
 After completing a task that modifies multiple files (3+ files created, edited, or deleted), ask the user:
 
@@ -211,15 +242,14 @@ Guidelines:
 - Good triggers: finished implementing a feature, completed a refactor, fixed a bug across multiple files
 - If the user declines, do not ask again until the next significant batch of changes
 - If the user says "stop asking" or "don't ask about this", stop asking for the rest of this session
-- Available commands: `/update-agent` (sync changes), `/ask-agent` (search), `/check-status` (progress)
-<!-- CUSTOMGPT-RAG-PLUGIN:END -->
+<!-- CUSTOMGPT-RAG-PLUGIN-AUTOSYNC:END -->
 ```
 
 If the user says no, skip this step.
 
 ---
 
-## Step 10 — Report
+## Step 11 — Report
 
 > **Agent created successfully.**
 >

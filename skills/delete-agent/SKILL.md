@@ -89,9 +89,13 @@ rm "${META_FILE_PATH}"
 
 ---
 
-## Step 6 — Remove Auto-Sync Block from CLAUDE.md
+## Step 6 — Remove Plugin Blocks from CLAUDE.md
 
-Check if `${indexed_folder}/CLAUDE.md` exists and contains the plugin's auto-sync block. If found, remove everything between `<!-- CUSTOMGPT-RAG-PLUGIN:START -->` and `<!-- CUSTOMGPT-RAG-PLUGIN:END -->` (inclusive). If CLAUDE.md becomes empty after removal, delete the file.
+Check if `${indexed_folder}/CLAUDE.md` exists. If found, remove both plugin blocks:
+1. Everything between `<!-- CUSTOMGPT-RAG-PLUGIN:START -->` and `<!-- CUSTOMGPT-RAG-PLUGIN:END -->` (inclusive)
+2. Everything between `<!-- CUSTOMGPT-RAG-PLUGIN-AUTOSYNC:START -->` and `<!-- CUSTOMGPT-RAG-PLUGIN-AUTOSYNC:END -->` (inclusive, may not exist)
+
+If CLAUDE.md becomes empty after removal, delete the file.
 
 ---
 
