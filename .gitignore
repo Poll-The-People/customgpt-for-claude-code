@@ -1,1 +1,5 @@
 .customgpt-meta.json
+.claude/memory/
+.claude/settings.local.json
+CLAUDE.md
+skill-review.md

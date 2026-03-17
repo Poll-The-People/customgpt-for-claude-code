@@ -1,6 +1,6 @@
 ---
 name: customgpt-ai-rag:delete-agent
-description: Permanently delete a CustomGPT.ai agent and all its indexed content, then remove the local .customgpt-meta.json binding. Irreversible — requires confirmation.
+description: Permanently delete a CustomGPT.ai agent and all its processed content, then remove the local .customgpt-meta.json binding. Irreversible — requires confirmation.
 argument-hint: "[optional: agent ID — defaults to current project's agent]"
 allowed-tools: Bash, Read
 triggers:
@@ -18,7 +18,7 @@ triggers:
 
 # delete-agent
 
-Permanently delete a CustomGPT.ai agent, all its indexed documents, conversations, and settings. Then remove the local `.customgpt-meta.json` binding.
+Permanently delete a CustomGPT.ai agent, all its processed documents, conversations, and settings. Then remove the local `.customgpt-meta.json` binding.
 
 ## Rules
 
@@ -51,7 +51,7 @@ Clearly describe what will be deleted:
 >
 > You are about to delete:
 > - Agent: '{agent_name}' (ID: {agent_id})
-> - All indexed documents and knowledge base content
+> - All processed documents and knowledge base content
 > - All conversation history
 > - Local meta file: `{META_FILE_PATH}`
 >

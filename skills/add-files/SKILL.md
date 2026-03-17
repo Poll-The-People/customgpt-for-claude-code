@@ -1,29 +1,23 @@
 ---
-name: customgpt-ai-rag:index-files
+name: customgpt-ai-rag:add-files
 description: Upload specific files, a directory, or the current folder into an existing CustomGPT.ai agent. Auto-creates an agent if none exists. Supports AI Vision for images.
 argument-hint: "[file, directory, or leave blank for current folder]"
 allowed-tools: Bash, Read
 triggers:
-  - "index"
-  - "index the"
-  - "index this"
-  - "index these"
-  - "index just"
-  - "index only"
-  - "index this file"
-  - "index this folder"
-  - "index this directory"
-  - "index this project"
-  - "index this repo"
-  - "index the files"
-  - "index the folder"
-  - "index the project"
-  - "index the repo"
-  - "index these files"
-  - "add to the index"
+  - "add files"
+  - "add this file"
+  - "add these files"
+  - "add this folder"
+  - "add this directory"
+  - "add this project"
+  - "add this repo"
+  - "add the files"
+  - "add the folder"
+  - "add the project"
+  - "add the repo"
+  - "add to the agent"
   - "add these files to the agent"
   - "add this file to the agent"
-  - "add to index"
   - "upload to the agent"
   - "upload these files"
   - "upload to customgpt"
@@ -32,7 +26,7 @@ triggers:
   - "add to knowledge base"
 ---
 
-# index-files
+# add-files
 
 Upload specific files, a directory, or the current folder into a CustomGPT.ai agent's knowledge base. If no agent exists, one is created automatically. Existing documents are not affected — this only adds new ones.
 
@@ -79,7 +73,7 @@ Extract `data.id` as `$AGENT_ID`. Save `.customgpt-meta.json` to `$PROJECT_FOLDE
 
 ---
 
-## Step 3 — Resolve What to Index
+## Step 3 — Resolve What to Add
 
 **If the user specified a single file:**
 
@@ -162,7 +156,7 @@ Tell the user the file count before uploading.
 
 If any files to upload are images (`.jpg`, `.jpeg`, `.png`, `.webp`), ask before uploading:
 
-> "Image files detected ({N} images). Enable AI Vision processing for richer indexing of image content? (yes/no)"
+> "Image files detected ({N} images). Enable AI Vision processing for richer content extraction? (yes/no)"
 
 If yes, also ask:
 > "Compress images before vision processing? Reduces token usage. (yes/no)"
@@ -212,6 +206,6 @@ touch "${META_FILE_PATH}"
 
 ## Step 8 — Report
 
-> **Indexed {UPLOADED} file(s) into agent `{agent_name}` (ID: `{agent_id}`).**{FAILED > 0 ? "\n> Failed: {FAILED} — run `/index-files` on specific files to retry." : ""}
+> **Added {UPLOADED} file(s) to agent `{agent_name}`.**{FAILED > 0 ? "\n> Failed: {FAILED} — run `/add-files` on specific files to retry." : ""}
 >
-> CustomGPT.ai is processing your files. Run `/check-status` to monitor progress, then `/query-agent` to start searching.
+> CustomGPT.ai is now processing your files. Run `/check-status` to monitor progress, then `/ask-agent` to start searching.

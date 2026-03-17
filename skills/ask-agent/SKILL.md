@@ -1,40 +1,34 @@
 ---
-name: customgpt-ai-rag:query-agent
-description: Ask a plain-language question to the indexed CustomGPT.ai agent and get an AI-generated answer with source citations. Warns if the index may be stale.
-argument-hint: "[your question about the indexed project]"
+name: customgpt-ai-rag:ask-agent
+description: Ask a plain-language question to your CustomGPT.ai agent and get an AI-generated answer with source citations. Warns if files have changed since last upload.
+argument-hint: "[your question about the project]"
 allowed-tools: Bash, Read
 triggers:
-  - "query agent"
   - "ask agent"
-  - "query the agent"
   - "ask the agent"
-  - "search agent"
-  - "query customgpt"
   - "ask customgpt"
-  - "search the index"
   - "search the knowledge base"
-  - "search indexed files"
-  - "what does the index say"
-  - "what does the agent know"
-  - "find in the index"
-  - "look up in the index"
+  - "search my files"
   - "search my codebase"
   - "search my project"
   - "search my docs"
+  - "what does the agent know"
   - "what do my files say about"
   - "find across my files"
+  - "search the agent"
+  - "question the agent"
 ---
 
-# query-agent
+# ask-agent
 
-Ask a plain-language question to the indexed project. Returns an AI-generated answer grounded in your files, with source citations.
+Ask a plain-language question about your project. Returns an AI-generated answer grounded in your files, with source citations.
 
 ## Rules
 
 - ALWAYS read `.customgpt-meta.json` to get `agent_id` — never hardcode it
 - Each call creates a fresh conversation session (stateless)
 - ALWAYS present both the answer AND the sources — sources let the user verify accuracy
-- If the agent has no indexed pages yet, instruct the user to run `/check-status` first
+- If the agent has no processed documents yet, instruct the user to run `/check-status` first
 
 ---
 
@@ -46,7 +40,7 @@ Follow the lookup procedure in `skills/_shared/api-key.md`. Store the result as 
 
 ## Step 2 — Read Meta File
 
-Walk up from `$PWD` toward `/`, looking for `.customgpt-meta.json`. Extract `agent_id` and `indexed_folder`.
+Walk up from `$PWD` toward `/`, looking for `.customgpt-meta.json`. Extract `agent_id`, `indexed_folder`, and `included_paths`.
 
 If not found:
 > "No agent found in this directory tree. Run `/create-agent` to set one up first."
@@ -55,14 +49,16 @@ If not found:
 
 ## Step 3 — Freshness Warning (Optional)
 
-Check whether any files in `indexed_folder` were modified after the meta file's timestamp:
+Check whether any files in the included paths were modified after the meta file's timestamp. For each path in `included_paths` (resolved relative to `indexed_folder`):
 
 ```bash
-find "$indexed_folder" -newer "${META_FILE_PATH}" -type f -not -path "*/.git/*" -not -path "*/node_modules/*"
+find "${indexed_folder}/${path}" -newer "${META_FILE_PATH}" -type f -not -path "*/.git/*" -not -path "*/node_modules/*"
 ```
 
+If `included_paths` is missing or `["."]`, check `indexed_folder` itself.
+
 If any files are newer, inform the user before proceeding:
-> "Note: {N} file(s) have changed since the last index update. Results may not reflect the latest changes. Run `/refresh-agent` to re-sync, or continue with the current index."
+> "Note: {N} file(s) have changed since the last upload. Results may not reflect the latest changes. Run `/update-agent` to sync the changed files, or I'll continue with the current data."
 
 Then continue regardless — do not stop.
 
@@ -73,7 +69,7 @@ Then continue regardless — do not stop.
 If the user provided a question with the command, use it directly.
 
 Otherwise ask:
-> "What would you like to search for in the indexed project?"
+> "What would you like to search for?"
 
 ---
 
@@ -90,7 +86,7 @@ curl -s --request POST \
 Read the response and extract `data.session_id` as `$SESSION_ID`.
 
 If the response indicates the agent has no content or is not ready, tell the user:
-> "The agent has no indexed content yet. Run `/check-status` to see indexing progress."
+> "The agent has no processed content yet. Run `/check-status` to see processing progress."
 
 ---
 
@@ -109,8 +105,8 @@ Read the response and extract:
 - `data.openai_response` — the AI-generated answer
 - `data.citations` — array of source references (each has `title`, `url` or `filename`, and optionally `page_id`)
 
-If `openai_response` is empty or null, the agent may still be indexing. Tell the user:
-> "The agent returned an empty response. The index may still be processing — run `/check-status` to verify, then try again."
+If `openai_response` is empty or null, the agent may still be processing. Tell the user:
+> "The agent returned an empty response. Your files may still be processing — run `/check-status` to verify, then try again."
 
 ---
 
@@ -134,6 +130,6 @@ Format the output clearly:
 ---
 
 If citations is empty or null, add:
-> "No specific sources cited. The agent may be using general knowledge rather than indexed content — check `/check-status` to confirm the index is ready."
+> "No specific sources cited. The agent may be using general knowledge rather than your files — run `/check-status` to confirm processing is complete."
 
 **After displaying results**, consider whether any cited files are relevant to the current task. If so, use the Read tool to open them for full context before making code changes.

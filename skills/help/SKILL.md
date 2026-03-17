@@ -1,7 +1,6 @@
 ---
 name: customgpt-ai-rag:help
-description: Show available CustomGPT.ai RAG skills, prerequisites, and how to get started with semantic search over your project.
-argument-hint: "[topic: setup | index | query | manage]"
+description: Show available CustomGPT.ai RAG skills and how to get started with semantic search over your project.
 allowed-tools: Read
 triggers:
   - "customgpt help"
@@ -16,73 +15,74 @@ triggers:
   - "how does rag search work"
 ---
 
-# CustomGPT.ai RAG Search — Help
+# CustomGPT.ai RAG Search
 
-Give Claude Code a persistent semantic search index over your entire project. Ask questions across thousands of files instantly — no re-reading, no context overflow.
+Search across your entire project instantly — thousands of files, no context overflow.
+
+## Quick Start
+
+```
+1. /create-agent    → connect your project to a new CustomGPT.ai agent
+2. /check-status    → wait until files are processed
+3. /ask-agent       → ask questions across your codebase
+```
 
 ## Prerequisites
 
 | Requirement | Details |
 |---|---|
-| CustomGPT.ai account | Sign up at https://app.customgpt.ai |
+| CustomGPT.ai account | https://app.customgpt.ai |
 | API key | https://app.customgpt.ai/profile#api-keys |
 | `curl` | Pre-installed on macOS, Linux, Windows 10+ |
 
-## Quick Start
+## Skills
 
-```
-1. /create-agent          → index this folder into a new CustomGPT.ai agent
-2. /check-status          → wait until pages are indexed (index_status: ok)
-3. /query-agent           → ask questions across your entire codebase
-```
-
-## Skill Reference
-
-### Setup & Indexing
+### Setup
 
 | Skill | What it does |
 |---|---|
-| `/create-agent` | Create a new agent and upload an entire folder |
-| `/index-files [path]` | Add specific files or a directory to an existing agent |
-| `/refresh-agent` | Wipe and re-upload everything (full re-sync after large changes) |
-| `/reindex-file [file]` | Delete and re-upload a single changed file |
+| `/create-agent` | Create a new agent and upload your project files |
+| `/add-files [path]` | Add specific files or a directory to an existing agent |
 
-### Querying
+### Search
 
 | Skill | What it does |
 |---|---|
-| `/query-agent [question]` | Ask a plain-language question; get an answer with source citations |
+| `/ask-agent [question]` | Ask a question — get an answer with source citations |
 
-### Monitoring & Management
+### Sync
 
 | Skill | What it does |
 |---|---|
-| `/check-status` | Agent metadata, chat availability, and indexing statistics |
-| `/list-pages` | All indexed documents with their IDs and crawl/index status |
-| `/check-page [name]` | Look up whether a specific file or URL is indexed |
-| `/delete-page [id]` | Remove a document from the knowledge base by page ID |
-| `/delete-agent` | Permanently delete the agent and remove the local meta file |
+| `/update-agent` | Sync changed files + add new files |
+| `/rebuild-agent` | Wipe everything and re-upload from scratch |
 
-## Which skill should I use?
+### Monitor
 
-**My files just changed** → `/reindex-file <filename>` for one file, or `/refresh-agent` for everything
+| Skill | What it does |
+|---|---|
+| `/check-status` | Processing progress and agent readiness |
+| `/list-files` | All documents in the knowledge base with their status |
+| `/delete-agent` | Permanently delete the agent |
 
-**Index is stale across the whole project** → `/refresh-agent`
+## What should I use?
 
-**I want to search without a full re-index** → `/query-agent` (it warns you if files have changed)
+**Files changed** → `/update-agent`
 
-**I don't know if a file is indexed** → `/check-page <filename>`
+**Want to start from scratch** → `/rebuild-agent`
 
-**I want to see everything in the knowledge base** → `/list-pages`
+**Just want to search** → `/ask-agent` (warns you if files changed)
 
-**I want to start fresh on a different folder** → `/delete-agent` then `/create-agent` on the new folder
+**See what's in the knowledge base** → `/list-files`
 
-## How the index works
+**Start over with a different folder** → `/delete-agent` then `/create-agent`
 
-Each Claude Code project maps to one CustomGPT.ai agent. The agent ID and indexed folder are stored in `.customgpt-meta.json` at the project root. All skills read this file automatically.
+## How it works
 
-After uploading files, CustomGPT.ai crawls and indexes them asynchronously. Use `/check-status` to monitor progress — queries work best once `pages_indexed` equals `pages_found`.
+Your project maps to one CustomGPT.ai agent. The connection is stored in `.customgpt-meta.json` at the project root — all skills read this automatically.
+
+After uploading, CustomGPT.ai processes files asynchronously. Use `/check-status` to monitor — queries work best once all files are processed.
 
 ## Privacy & billing
 
-Your files are uploaded to CustomGPT.ai's servers for indexing. The plugin uses your existing subscription's API quota — no extra charge. Your API key is stored locally in `~/.claude/customgpt-config.json` and never leaves your machine except when authenticating with the CustomGPT.ai API.
+Files are uploaded to CustomGPT.ai for processing. The plugin uses your existing subscription quota. Your API key is stored locally in `~/.claude/customgpt-config.json` and only sent to the CustomGPT.ai API.

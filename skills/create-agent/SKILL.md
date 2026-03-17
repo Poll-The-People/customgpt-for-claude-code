@@ -1,6 +1,6 @@
 ---
 name: customgpt-ai-rag:create-agent
-description: Create a new CustomGPT.ai agent for a local folder and upload all eligible files into its knowledge base. Saves agent binding to .customgpt-meta.json.
+description: Create a new CustomGPT.ai agent for a local project and upload eligible files into its knowledge base. Saves agent binding to .customgpt-meta.json.
 argument-hint: "[folder path — defaults to current directory]"
 allowed-tools: Bash, Read
 triggers:
@@ -13,25 +13,24 @@ triggers:
   - "set up agent"
   - "initialize agent"
   - "init agent"
-  - "index this repo"
-  - "index this project"
-  - "index everything"
+  - "connect this repo"
+  - "connect this project"
+  - "connect everything"
   - "build a rag"
-  - "build rag index"
   - "create a rag"
   - "set up rag"
 ---
 
 # create-agent
 
-Create a CustomGPT.ai agent for a local folder and upload all eligible files into its knowledge base.
+Create a CustomGPT.ai agent for a local project and upload eligible files into its knowledge base.
 
 ## Rules
 
 - NEVER proceed without an API key
 - ALWAYS save `.customgpt-meta.json` before reporting success
 - NEVER upload `.git/`, `node_modules/`, secrets (`.env`, `.env.*`), or binary files
-- If `.customgpt-meta.json` already exists in the target folder, warn the user before overwriting — they may want `/refresh-agent` instead
+- If `.customgpt-meta.json` already exists in the target folder, warn the user before overwriting — they may want `/rebuild-agent` instead
 
 ---
 
@@ -41,7 +40,7 @@ Follow the lookup procedure in `skills/_shared/api-key.md`. Store the result as 
 
 ---
 
-## Step 2 — Determine the Folder
+## Step 2 — Determine the Project Root
 
 If the user specified a path, resolve it to an absolute path and verify it exists:
 
@@ -55,17 +54,30 @@ If no path was given, use the Git repository root if available, otherwise `$PWD`
 git rev-parse --show-toplevel 2>/dev/null || echo "$PWD"
 ```
 
-Store the result as `$FOLDER`. Tell the user: "Creating agent for: `{FOLDER}`"
+Store the result as `$FOLDER`.
 
 Check whether `.customgpt-meta.json` already exists in `$FOLDER`. If it does, read it and ask:
 
-> "An agent already exists for this folder: '{agent_name}' (ID: {agent_id}). Run `/refresh-agent` to re-sync it, or type 'overwrite' to create a new agent and replace the meta file."
+> "An agent already exists for this folder: '{agent_name}' (ID: {agent_id}). Run `/rebuild-agent` to re-sync it, or type 'overwrite' to create a new agent and replace the meta file."
 
 If they don't confirm overwrite, stop.
 
 ---
 
-## Step 3 — Create the Agent
+## Step 3 — Ask What to Add
+
+Ask the user what they want to include:
+
+> "Setting up agent for: `{FOLDER}`
+>
+> Would you like to add **all files and subfolders** in this project, or only specific folders/files?"
+
+- If "all" / "everything" / default → set `$INCLUDED_PATHS` to `["."]` and use `$FOLDER` as the target for file collection
+- If the user specifies paths (e.g., "just src/ and docs/") → set `$INCLUDED_PATHS` to the list they gave (e.g., `["src/", "docs/"]`) and collect files only from those paths relative to `$FOLDER`
+
+---
+
+## Step 4 — Create the Agent
 
 ```bash
 curl -s --request POST \
@@ -83,10 +95,40 @@ On failure, show the full response and stop. Common errors:
 
 ---
 
-## Step 4 — Collect Eligible Files
+## Step 5 — Set Agent Persona
+
+Immediately after creation, configure the agent's persona and enable citations:
 
 ```bash
-find "$FOLDER" -type f \
+curl -s --request POST \
+  --url "https://app.customgpt.ai/api/v1/projects/${AGENT_ID}/settings" \
+  --header "Authorization: Bearer ${API_KEY}" \
+  --form "enable_citations=1" \
+  --form "persona_instructions=You are AI Search Assistant to Claude Code Agent that is working on the project \"${PROJECT_NAME}\".
+
+Claude Code Agent operates on a very big project and it's difficult for it to find files. You are there to help with your semantic search capabilities.
+
+Claude Code Agent will ask you for information about some term or terms, and your job is to:
+1. Provide short summary of what you have in your <CONTEXT> about that term(s).
+2. Attach EXACT filename(s) from your <CONTEXT>, corresponding to pages you used to build your response. This will help Claude Code Agent locate the actual files.
+
+Your response should contain nothing else."
+```
+
+Where `$PROJECT_NAME` is `$(basename $FOLDER)`.
+
+If the call fails, warn the user but continue — persona is not required for the agent to function.
+
+---
+
+## Step 6 — Collect Eligible Files
+
+**Important:** `find` is recursive — it automatically includes all subfolders. Do NOT manually iterate through subdirectories or call `find` per subfolder. One `find` call per included path is all that's needed.
+
+For each path in `$INCLUDED_PATHS`, resolve it relative to `$FOLDER` and run:
+
+```bash
+find "$TARGET_PATH" -type f \
   -not -path "*/.git/*" \
   -not -path "*/node_modules/*" \
   -not -path "*/__pycache__/*" \
@@ -123,11 +165,11 @@ find "$FOLDER" -type f \
   \)
 ```
 
-Read the file list. Report the count: "Found {N} eligible files. Uploading..."
+Combine results from all included paths. Report the count: "Found {N} eligible files. Uploading..."
 
 ---
 
-## Step 5 — Upload Each File
+## Step 7 — Upload Each File
 
 For each file, compute `REL` as its path relative to `$FOLDER` (strip the leading `$FOLDER/` prefix). Upload:
 
@@ -144,7 +186,7 @@ Collect totals: `$UPLOADED` (success) and `$FAILED` (non-200/201).
 
 ---
 
-## Step 6 — Save Meta File
+## Step 8 — Save Meta File
 
 ```bash
 cat > "${FOLDER}/.customgpt-meta.json" << EOF
@@ -152,22 +194,26 @@ cat > "${FOLDER}/.customgpt-meta.json" << EOF
   "agent_id": ${AGENT_ID},
   "agent_name": "$(basename $FOLDER)",
   "indexed_folder": "${FOLDER}",
+  "included_paths": ${INCLUDED_PATHS_JSON},
   "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
 ```
 
+Where `$INCLUDED_PATHS_JSON` is the JSON array, e.g. `["."]` or `["src/", "docs/"]`.
+
 ---
 
-## Step 7 — Report
+## Step 9 — Report
 
 > **Agent created successfully.**
 >
 > - Agent: `{agent_name}` (ID: `{agent_id}`)
 > - Folder: `{folder}`
+> - Scope: {included_paths description — "all files" or list of paths}
 > - Uploaded: **{UPLOADED}** / {total} files{FAILED > 0 ? ", Failed: {FAILED}" : ""}
 >
-> CustomGPT.ai is now indexing your files. Run `/check-status` in a moment to see indexing progress, then `/query-agent` to start searching.
+> CustomGPT.ai is now processing your files. Run `/check-status` in a moment to see progress, then `/ask-agent` to start searching.
 
 If any uploads failed, add:
-> "Some files failed to upload. Run `/index-files` to retry specific files, or `/refresh-agent` to re-sync everything."
+> "Some files failed to upload. Run `/add-files` to retry specific files, or `/rebuild-agent` to re-sync everything."

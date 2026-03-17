@@ -1,36 +1,29 @@
 ---
-name: customgpt-ai-rag:reindex-file
-description: Delete a specific file from the CustomGPT.ai agent and re-upload it from disk. Use when a single file has changed and you need to refresh it without a full re-sync.
-argument-hint: "[filename or path to refresh]"
+name: customgpt-ai-rag:_update-file-by-id
+description: Internal utility — delete a specific document from the agent by its API page ID and re-upload the current version from disk. Used by other skills that need to refresh a single file.
+argument-hint: "[filename or path to update]"
 allowed-tools: Bash, Read
 triggers:
-  - "reindex file"
-  - "reindex this file"
-  - "reindex specific file"
-  - "re-index file"
-  - "re-index this file"
-  - "refresh file"
-  - "refresh this file"
-  - "refresh specific file"
+  - "update file"
+  - "update this file"
   - "re-upload file"
   - "re-upload this file"
-  - "update file in agent"
-  - "update indexed file"
-  - "update this file in the index"
+  - "refresh file"
+  - "refresh this file"
   - "sync this file"
   - "sync file"
 ---
 
-# reindex-file
+# _update-file-by-id
 
-Find a specific file in the agent's knowledge base, delete it, then re-upload the current version from disk. The surgical alternative to `/refresh-agent` — use this when only one or a few files have changed.
+Find a specific file in the agent's knowledge base, delete it, then re-upload the current version from disk. Internal utility — for bulk updates, use `/update-agent` instead.
 
 ## Rules
 
 - ALWAYS read `.customgpt-meta.json` to get `agent_id` and `indexed_folder`
 - For uploaded files: delete then re-upload (the `/reindex` API endpoint only works for URL-based documents)
 - For URL-based documents: use the `/reindex` API endpoint directly
-- Match files by case-insensitive substring match against `filename` in the pages list
+- Match files by case-insensitive substring match against `filename` in the document list
 - Confirm before deleting — the delete is irreversible
 
 ---
@@ -53,7 +46,7 @@ If not found:
 ## Step 3 — Resolve the Target File
 
 If the user provided a filename or path, use it. Otherwise ask:
-> "Which file do you want to reindex? Provide a filename or relative path."
+> "Which file do you want to update? Provide a filename or relative path."
 
 Resolve to an absolute path:
 
@@ -71,11 +64,11 @@ Use the first match. If no match is found on disk, tell the user and stop.
 
 ---
 
-## Step 4 — Find the Page ID in the Agent
+## Step 4 — Find the Document ID in the Agent
 
-Search the agent's page list for a document whose `filename` contains the target filename as a case-insensitive substring.
+Search the agent's document list for an entry whose `filename` contains the target filename as a case-insensitive substring.
 
-Fetch pages until a match is found or all pages are checked:
+Fetch documents until a match is found or all are checked:
 
 ```bash
 curl -s --request GET \
@@ -86,18 +79,18 @@ curl -s --request GET \
 
 Match each entry's `filename` (case-insensitive, substring) against `$(basename $TARGET)`.
 
-**If no match found after all pages:**
-> "'{filename}' is not currently indexed. Uploading it now as a new document..."
+**If no match found after all documents:**
+> "'{filename}' is not currently in the agent. Adding it now as a new document..."
 > Skip directly to Step 6.
 
 **If matched:** note the `id` as `$PAGE_ID`, the `filename`, and `is_file`. For URL-based documents (`is_file: false`), go to Step 5b.
 
 ---
 
-## Step 5a — Delete the Existing File Page
+## Step 5a — Delete the Existing Document
 
 Confirm with the user:
-> "Found '`{filename}`' as page ID {PAGE_ID}. I will delete it and re-upload `{target}` from disk. Continue? (yes/no)"
+> "Found '`{filename}`' (document ID {PAGE_ID}). I will delete it and re-upload the current version from disk. Continue? (yes/no)"
 
 ```bash
 curl -s --request DELETE \
@@ -110,7 +103,7 @@ On HTTP 200, proceed to Step 6. On failure, show the error response and stop —
 
 ---
 
-## Step 5b — Reindex URL-Based Document (alternative path)
+## Step 5b — Re-process URL-Based Document (alternative path)
 
 For URL-based documents (`is_file: false`), use the reindex endpoint instead of delete+upload:
 
@@ -121,8 +114,8 @@ curl -s --request POST \
   --header "accept: application/json"
 ```
 
-Read the response. `data.updated: true` = reindex triggered successfully. Tell the user:
-> "Reindex triggered for URL document (page ID {PAGE_ID}). CustomGPT.ai will re-crawl the URL. Run `/check-page` in a moment to verify the new index status."
+Read the response. `data.updated: true` = re-process triggered successfully. Tell the user:
+> "Re-processing triggered for URL document (document ID {PAGE_ID}). CustomGPT.ai will re-process the URL. Run `/check-status` in a moment to verify progress."
 
 Then skip to Step 7 (update freshness) and Step 8 (report).
 
@@ -153,9 +146,9 @@ touch "$META_FILE_PATH"
 
 ## Step 8 — Report
 
-> **Reindexed `{filename}`**
+> **Updated `{filename}`**
 >
-> - Deleted old page ID: {PAGE_ID}
-> - Uploaded new copy: HTTP {status}
+> - Deleted old document ID: {PAGE_ID}
+> - Uploaded new version: HTTP {status}
 >
-> Run `/check-page {filename}` to verify the new crawl and index status once processing completes.
+> CustomGPT.ai is now processing the file. Run `/check-status` to verify progress.

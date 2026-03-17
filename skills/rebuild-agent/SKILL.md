@@ -1,37 +1,31 @@
 ---
-name: customgpt-ai-rag:refresh-agent
-description: Wipe all documents from the CustomGPT.ai agent and re-upload everything from the indexed folder. Use after large-scale changes to keep the knowledge base current.
-argument-hint: "[optional: folder path — defaults to indexed_folder from meta file]"
+name: customgpt-ai-rag:rebuild-agent
+description: Wipe all documents from the CustomGPT.ai agent and re-upload everything from scratch. Use only when the knowledge base is severely out of sync. Counts against monthly processing limits.
+argument-hint: "[optional: folder path — defaults to connected folder from meta file]"
 allowed-tools: Bash, Read
 triggers:
-  - "refresh agent"
-  - "refresh the agent"
-  - "reindex"
-  - "re-index"
-  - "reindex everything"
-  - "re-index everything"
-  - "full reindex"
-  - "full re-index"
-  - "full refresh"
-  - "re-sync"
-  - "resync"
-  - "resync agent"
-  - "sync agent"
-  - "update the index"
-  - "rebuild the index"
-  - "wipe and reindex"
+  - "rebuild agent"
+  - "rebuild the agent"
+  - "rebuild everything"
+  - "full rebuild"
+  - "wipe and re-upload"
+  - "rebuild knowledge base"
+  - "start fresh"
+  - "nuke agent"
+  - "reset agent"
 ---
 
-# refresh-agent
+# rebuild-agent
 
-Delete all documents from the agent and re-upload everything from the indexed folder. This is the nuclear option — use `/reindex-file` for single-file updates.
+Delete all documents from the agent and re-upload everything from scratch. This is the nuclear option — for incremental updates, use `/update-agent` instead.
 
 ## Rules
 
-- ALWAYS read `.customgpt-meta.json` first
-- ALWAYS confirm with the user before deleting — deletion is irreversible
-- Paginate the page list — there may be more than 100 documents; use `data.pages.last_page`
-- Collect ALL page IDs before starting any deletions
+- ALWAYS read `.customgpt-meta.json` first — respect `included_paths` to know what's in scope
+- ALWAYS confirm with the user before proceeding — deletion is irreversible
+- ALWAYS warn that re-uploading all files will count against their monthly processing limits
+- Paginate the document list — there may be more than 100 documents; use `data.pages.last_page`
+- Collect ALL document IDs before starting any deletions
 - Touch the meta file after upload to reset the freshness timestamp
 
 ---
@@ -44,7 +38,9 @@ Follow the lookup procedure in `skills/_shared/api-key.md`. Store the result as 
 
 ## Step 2 — Read Meta File
 
-Walk up from `$PWD` toward `/`, looking for `.customgpt-meta.json`. Extract `agent_id`, `agent_name`, and `indexed_folder`. Store the full path as `$META_FILE_PATH`.
+Walk up from `$PWD` toward `/`, looking for `.customgpt-meta.json`. Extract `agent_id`, `agent_name`, `indexed_folder`, and `included_paths`. Store the full path as `$META_FILE_PATH`.
+
+If `included_paths` is missing, default to `["."]`.
 
 If not found:
 > "No agent found in this directory tree. Run `/create-agent` to set one up first."
@@ -53,30 +49,38 @@ If not found:
 
 ## Step 3 — Check for Changed Files
 
-Before asking the user, give them context on what has changed:
+Before asking the user, give them context on what has changed. For each path in `included_paths` (resolved relative to `indexed_folder`):
 
 ```bash
-find "$indexed_folder" -newer "${META_FILE_PATH}" -type f \
+find "${indexed_folder}/${path}" -newer "${META_FILE_PATH}" -type f \
   -not -path "*/.git/*" \
   -not -path "*/node_modules/*" \
   -not -path "*/__pycache__/*"
 ```
 
-Report the count. This is informational — a refresh always re-uploads everything regardless.
+If `included_paths` is `["."]`, check `indexed_folder` itself.
+
+Report the count. This is informational — a rebuild always re-uploads everything regardless.
 
 ---
 
 ## Step 4 — Confirm with User
 
-> "This will delete ALL documents from agent '{agent_name}' (ID: {agent_id}) and re-upload {N} changed file(s) from `{indexed_folder}`. This cannot be undone. Continue? (yes/no)"
+> "**Warning:** This will delete ALL documents from agent '{agent_name}' and re-upload everything from scratch.
+>
+> **All re-uploaded files will count against your monthly processing limits on CustomGPT.ai.**
+>
+> If you only need to sync changed files, `/update-agent` is faster and cheaper.
+>
+> Continue with full rebuild? (yes/no)"
 
-If the user does not confirm, stop: "Refresh cancelled."
+If the user does not confirm, stop: "Rebuild cancelled."
 
 ---
 
-## Step 5 — Fetch All Page IDs
+## Step 5 — Fetch All Document IDs
 
-Fetch all page IDs before deleting anything. Start with page 1:
+Fetch all document IDs before deleting anything. Start with page 1:
 
 ```bash
 curl -s --request GET \
@@ -94,13 +98,13 @@ curl -s --request GET \
   --header "accept: application/json"
 ```
 
-Collect all IDs across all pages into a list. Tell the user: "Found {total} existing documents to delete."
+Collect all IDs across all pages into a list. Tell the user: "Found {total} existing documents to remove."
 
 ---
 
-## Step 6 — Delete All Pages
+## Step 6 — Delete All Documents
 
-For each collected page ID:
+For each collected document ID:
 
 ```bash
 curl -s --request DELETE \
@@ -109,14 +113,18 @@ curl -s --request DELETE \
   --header "accept: application/json"
 ```
 
-HTTP 200 = deleted. HTTP 404 = already gone (count as success). Report progress periodically: "Deleting... {D}/{total} done."
+HTTP 200 = deleted. HTTP 404 = already gone (count as success). Report progress periodically: "Removing... {D}/{total} done."
 
 ---
 
 ## Step 7 — Collect Eligible Files
 
+**Important:** `find` is recursive — it automatically includes all subfolders. Do NOT manually iterate through subdirectories.
+
+For each path in `included_paths`, resolve it relative to `indexed_folder` and run:
+
 ```bash
-find "$indexed_folder" -type f \
+find "$TARGET_PATH" -type f \
   -not -path "*/.git/*" \
   -not -path "*/node_modules/*" \
   -not -path "*/__pycache__/*" \
@@ -154,7 +162,7 @@ find "$indexed_folder" -type f \
   \)
 ```
 
-Tell the user the count: "Uploading {total} files..."
+Combine results from all included paths. Tell the user the count: "Uploading {total} files..."
 
 ---
 
@@ -183,9 +191,9 @@ touch "${META_FILE_PATH}"
 
 ## Step 10 — Report
 
-> **Agent '{agent_name}' (ID: {agent_id}) refreshed.**
+> **Agent '{agent_name}' rebuilt.**
 >
-> - Deleted: {D} documents
+> - Removed: {D} documents
 > - Uploaded: {UPLOADED} / {total} files{FAILED > 0 ? ", Failed: {FAILED}" : ""}
 >
-> CustomGPT.ai is processing the new files. Run `/check-status` to monitor progress, then `/query-agent` to search the updated index.
+> CustomGPT.ai is now processing your files. Run `/check-status` to monitor progress, then `/ask-agent` to search.

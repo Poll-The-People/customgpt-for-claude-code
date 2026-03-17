@@ -37,7 +37,7 @@ Extract the `apiKey` field value.
 
 Ask the user:
 
-> "Please provide your CustomGPT.ai API key. You can find it at https://app.customgpt.ai/profile#api-keys — get a free API key by signing up at https://app.customgpt.ai"
+> "Please provide your CustomGPT.ai API key. You can find it at https://app.customgpt.ai/profile#api-keys. If you don't have the account, you can get started at https://app.customgpt.ai/register"
 
 Once provided, save for future sessions:
 
@@ -51,4 +51,4 @@ Confirm: "API key saved to `~/.claude/customgpt-config.json`."
 
 If any API call returns HTTP 401, stop and tell the user:
 
-> "API key invalid or expired. Update it at https://app.customgpt.ai/profile#api-keys, then save the new key with: `echo '{\"apiKey\":\"NEW_KEY\"}' > ~/.claude/customgpt-config.json`"
+> "API key invalid or expired. Please create new one at https://app.customgpt.ai/profile#api-keys, then save it with: `echo '{\"apiKey\":\"NEW_KEY\"}' > ~/.claude/customgpt-config.json`"
