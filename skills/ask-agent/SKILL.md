@@ -1,6 +1,6 @@
 ---
 name: customgpt-ai-rag:ask-agent
-description: Ask a plain-language question to your CustomGPT.ai agent and get an AI-generated answer with source citations. Warns if files have changed since last upload.
+description: Ask a plain-language question to your CustomGPT.ai agent and get an AI-generated answer with listed sources. Warns if files have changed since last upload.
 argument-hint: "[your question about the project]"
 allowed-tools: Bash, Read
 triggers:
@@ -21,7 +21,7 @@ triggers:
 
 # ask-agent
 
-Ask a plain-language question about your project. Returns an AI-generated answer grounded in your files, with source citations.
+Ask a plain-language question about your project. Returns an AI-generated answer grounded in your files, with listed sources.
 
 ## Rules
 
@@ -103,7 +103,6 @@ curl -s --request POST \
 
 Read the response and extract:
 - `data.openai_response` — the AI-generated answer
-- `data.citations` — array of source references (each has `title`, `url` or `filename`, and optionally `page_id`)
 
 If `openai_response` is empty or null, the agent may still be processing. Tell the user:
 > "The agent returned an empty response. Your files may still be processing — run `/check-status` to verify, then try again."
@@ -112,24 +111,26 @@ If `openai_response` is empty or null, the agent may still be processing. Tell t
 
 ## Step 7 — Present Results
 
-Format the output clearly:
+Prepare the output:
 
 ---
 
 **Answer**
 
-{openai_response}
+Use the {openai_response} to build the response, depending on what user prompted.
 
 **Sources**
 
-| # | Source | Details |
-|---|--------|---------|
-| 1 | {title or filename} | {url or "uploaded file"} |
-| 2 | ... | ... |
+Use files listed in {openai_response} to build the table of sources in this format:
+
+| # | Source |
+|---|--------|
+| 1 | {title or filename} |
+| 2 | ... |
 
 ---
 
-If citations is empty or null, add:
-> "No specific sources cited. The agent may be using general knowledge rather than your files — run `/check-status` to confirm processing is complete."
+If sources are not present:
+> "No specific sources are provided. Agent either couldn't find the requested items, or it may still be processing your files. Run `/check-status` to confirm processing is complete."
 
 **After displaying results**, consider whether any cited files are relevant to the current task. If so, use the Read tool to open them for full context before making code changes.
