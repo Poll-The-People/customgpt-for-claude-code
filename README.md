@@ -13,8 +13,8 @@ A Claude Code plugin that gives you semantic search over your entire project usi
 In Claude Code, run:
 
 ```
-/plugin marketplace add adorosario/customgpt-skill-plugin
-/plugin install customgpt-ai-rag@adorosario-customgpt-ai-rag
+/plugin marketplace add Poll-The-People/customgpt-for-claude-code
+/plugin install customgpt-ai-rag@poll-the-people-customgpt-for-claude-code
 /reload-plugins
 ```
 
