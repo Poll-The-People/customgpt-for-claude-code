@@ -188,7 +188,38 @@ Where `$INCLUDED_PATHS_JSON` is the JSON array, e.g. `["."]` or `["src/", "docs/
 
 ---
 
-## Step 9 — Report
+## Step 9 — Offer Auto-Sync Reminders
+
+Ask the user:
+> "Would you like me to automatically remind you to sync changes with the CustomGPT agent after I make significant edits? (yes/no)"
+
+If yes, append the following block to `${FOLDER}/CLAUDE.md` (create the file if it doesn't exist). Do NOT modify any existing content in CLAUDE.md — only append.
+
+```markdown
+
+<!-- CUSTOMGPT-RAG-PLUGIN:START -->
+## CustomGPT.ai RAG Plugin — Auto-Sync
+
+This project is connected to a CustomGPT.ai search agent via the `customgpt-ai-rag` plugin (see `.customgpt-meta.json`).
+
+After completing a task that modifies multiple files (3+ files created, edited, or deleted), ask the user:
+
+> "I've modified several files. Want me to sync the changes with your CustomGPT search agent? (`/update-agent`)"
+
+Guidelines:
+- Ask once after a batch of work is done — NOT after every individual edit
+- Good triggers: finished implementing a feature, completed a refactor, fixed a bug across multiple files
+- If the user declines, do not ask again until the next significant batch of changes
+- If the user says "stop asking" or "don't ask about this", stop asking for the rest of this session
+- Available commands: `/update-agent` (sync changes), `/ask-agent` (search), `/check-status` (progress)
+<!-- CUSTOMGPT-RAG-PLUGIN:END -->
+```
+
+If the user says no, skip this step.
+
+---
+
+## Step 10 — Report
 
 > **Agent created successfully.**
 >
