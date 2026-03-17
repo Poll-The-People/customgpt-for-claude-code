@@ -1,12 +1,12 @@
 {
   "name": "customgpt-ai-rag",
   "version": "2.0.0",
-  "description": "Give Claude Code persistent semantic search over your entire project — even 10,000 files — using CustomGPT.ai's RAG engine. Index your codebase, documents, or any file collection once, then ask questions across everything instantly. No context overflow, no re-reading files. Use /create-agent to index a folder, /query-agent to search it, and /refresh-agent to keep it current. Requires only curl — no Node.js, no Python, no dependencies.",
+  "description": "Give Claude Code semantic search over your entire project using CustomGPT.ai's RAG engine. Upload your codebase once, then ask questions across all files instantly. Use /create-agent to connect a folder, /ask-agent to search it, and /update-agent to sync changes. No dependencies — just curl.",
   "author": {
     "name": "CustomGPT.ai"
   },
   "license": "MIT",
-  "repository": "https://github.com/adorosario/customgpt-skill-plugin",
+  "repository": "https://github.com/Poll-The-People/customgpt-for-claude-code",
   "keywords": [
     "customgpt",
     "rag",
