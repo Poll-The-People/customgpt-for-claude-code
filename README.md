@@ -60,13 +60,7 @@ If no key is found, the plugin prompts you and saves it automatically.
 
 ## Supported Files
 
-**Code:** `.js` `.ts` `.py` `.go` `.rb` `.java` `.cs` `.cpp` `.rs` `.swift` `.kt` `.php` `.sh` `.html` `.css` `.vue` `.svelte` `.sql` and more
-
-**Config:** `.json` `.yaml` `.toml` `.xml` `.ini` `.env.example`
-
-**Docs:** `.md` `.txt` `.pdf` `.docx` `.csv` `.xlsx`
-
-**Images:** `.jpg` `.png` `.webp` (with optional AI Vision)
+CustomGPT.ai supports **1,400+ file types** — code, docs, images, PDFs, spreadsheets, and more. If a file type isn't supported, the API will tell you.
 
 **Auto-excluded:** `.git/` `node_modules/` `dist/` `build/` `.env` and other common junk directories.
 

@@ -33,7 +33,7 @@ Upload specific files, a directory, or the current folder into a CustomGPT.ai ag
 ## Rules
 
 - THIS SKILL UPLOADS TO THE CUSTOMGPT.AI API via `curl` — it does NOT write to Claude's memory or local files
-- NEVER upload `.env`, `.env.*`, or binary files
+- NEVER upload `.env` or `.env.*` files
 - Auto-create an agent if `.customgpt-meta.json` is not found — do NOT stop or ask the user to run another skill first
 - If `.customgpt-meta.json` exists but the specified path is outside `indexed_folder`, still upload — users may intentionally add files from other locations
 
@@ -85,25 +85,13 @@ find "$indexed_folder" -name "${FILENAME}" -type f
 
 Use the first match. If not found, tell the user and stop.
 
-If it's a full path, resolve to absolute and verify it exists. Check the extension against the whitelist below. If unsupported, tell the user: "Extension `.{ext}` is not supported. Supported types: [list]."
+If it's a full path, resolve to absolute and verify it exists.
 
 **If the user specified a directory:** Collect eligible files recursively (Step 4 `find` command).
 
 **If nothing specified:** Use `$PWD` as the directory.
 
-### Supported Extensions
-
-**Code:** `.js` `.ts` `.tsx` `.jsx` `.mjs` `.cjs` `.py` `.go` `.rb` `.java` `.cs` `.cpp` `.c` `.h` `.hpp` `.rs` `.swift` `.kt` `.php` `.scala` `.lua` `.r` `.R` `.sh` `.bash` `.zsh` `.fish` `.ps1` `.html` `.htm` `.css` `.scss` `.sass` `.less` `.svelte` `.vue` `.sql` `.graphql` `.proto`
-
-**Config / Data:** `.json` `.jsonc` `.yaml` `.yml` `.toml` `.xml` `.ini` `.cfg` `.conf` `.env.example`
-
-**Docs:** `.md` `.mdx` `.rst` `.txt` `.csv` `.tsv` `.pdf` `.docx` `.doc` `.odt` `.pptx` `.xlsx`
-
-**Images:** `.jpg` `.jpeg` `.png` `.webp`
-
-### Excluded Directories
-
-`.git` `node_modules` `__pycache__` `.next` `dist` `build` `.cache` `vendor` `coverage` `.venv` `venv` `target` `.turbo` `.parcel-cache`
+CustomGPT.ai supports 1,400+ file types — do NOT filter by extension. If a file type is unsupported, the API will return an error for that file.
 
 ---
 
@@ -126,26 +114,7 @@ find "$TARGET_DIR" -type f \
   -not -path "*/.turbo/*" \
   -not -path "*/.parcel-cache/*" \
   -not -name ".env" \
-  -not -name ".env.*" \
-  \( \
-    -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" \
-    -o -name "*.mjs" -o -name "*.cjs" \
-    -o -name "*.py" -o -name "*.go" -o -name "*.rb" -o -name "*.java" \
-    -o -name "*.cs" -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \
-    -o -name "*.rs" -o -name "*.swift" -o -name "*.kt" -o -name "*.php" \
-    -o -name "*.scala" -o -name "*.lua" -o -name "*.r" -o -name "*.R" \
-    -o -name "*.sh" -o -name "*.bash" -o -name "*.zsh" -o -name "*.fish" -o -name "*.ps1" \
-    -o -name "*.html" -o -name "*.htm" -o -name "*.css" -o -name "*.scss" \
-    -o -name "*.sass" -o -name "*.less" -o -name "*.svelte" -o -name "*.vue" \
-    -o -name "*.sql" -o -name "*.graphql" -o -name "*.proto" \
-    -o -name "*.json" -o -name "*.jsonc" -o -name "*.yaml" -o -name "*.yml" \
-    -o -name "*.toml" -o -name "*.xml" -o -name "*.ini" -o -name "*.cfg" \
-    -o -name "*.conf" -o -name "*.env.example" \
-    -o -name "*.md" -o -name "*.mdx" -o -name "*.rst" -o -name "*.txt" \
-    -o -name "*.csv" -o -name "*.tsv" -o -name "*.pdf" -o -name "*.docx" \
-    -o -name "*.doc" -o -name "*.odt" -o -name "*.pptx" -o -name "*.xlsx" \
-    -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \
-  \)
+  -not -name ".env.*"
 ```
 
 Tell the user the file count before uploading.

@@ -29,7 +29,7 @@ Create a CustomGPT.ai agent for a local project and upload eligible files into i
 
 - NEVER proceed without an API key
 - ALWAYS save `.customgpt-meta.json` before reporting success
-- NEVER upload `.git/`, `node_modules/`, secrets (`.env`, `.env.*`), or binary files
+- NEVER upload `.git/`, `node_modules/`, or secrets (`.env`, `.env.*`)
 - If `.customgpt-meta.json` already exists in the target folder, warn the user before overwriting — they may want `/rebuild-agent` instead
 
 ---
@@ -144,26 +144,10 @@ find "$TARGET_PATH" -type f \
   -not -path "*/.turbo/*" \
   -not -path "*/.parcel-cache/*" \
   -not -name ".env" \
-  -not -name ".env.*" \
-  \( \
-    -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" \
-    -o -name "*.mjs" -o -name "*.cjs" \
-    -o -name "*.py" -o -name "*.go" -o -name "*.rb" -o -name "*.java" \
-    -o -name "*.cs" -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \
-    -o -name "*.rs" -o -name "*.swift" -o -name "*.kt" -o -name "*.php" \
-    -o -name "*.scala" -o -name "*.lua" -o -name "*.r" -o -name "*.R" \
-    -o -name "*.sh" -o -name "*.bash" -o -name "*.zsh" -o -name "*.fish" \
-    -o -name "*.html" -o -name "*.htm" -o -name "*.css" -o -name "*.scss" \
-    -o -name "*.sass" -o -name "*.less" -o -name "*.svelte" -o -name "*.vue" \
-    -o -name "*.sql" -o -name "*.graphql" -o -name "*.proto" \
-    -o -name "*.json" -o -name "*.jsonc" -o -name "*.yaml" -o -name "*.yml" \
-    -o -name "*.toml" -o -name "*.xml" -o -name "*.ini" -o -name "*.cfg" \
-    -o -name "*.conf" -o -name "*.env.example" \
-    -o -name "*.md" -o -name "*.mdx" -o -name "*.rst" -o -name "*.txt" \
-    -o -name "*.csv" -o -name "*.tsv" -o -name "*.pdf" -o -name "*.docx" \
-    -o -name "*.doc" -o -name "*.odt" -o -name "*.pptx" -o -name "*.xlsx" \
-  \)
+  -not -name ".env.*"
 ```
+
+CustomGPT.ai supports 1,400+ file types — do NOT filter by extension. If a file type is unsupported, the API will return an error for that file.
 
 Combine results from all included paths. Report the count: "Found {N} eligible files. Uploading..."
 
