@@ -121,47 +121,74 @@ Tell the user the file count before uploading.
 
 ---
 
-## Step 5 — Vision Check (Images Only)
+## Step 5 — Vision / OCR Check
 
-If any files to upload are images (`.jpg`, `.jpeg`, `.png`, `.webp`), ask before uploading:
+Default: every file uploads with `is_ocr_enabled=0` (plain text extraction). Only ask about AI Vision (`is_ocr_enabled=2`) for file types where it actually matters: **images** and **PDFs**.
+
+**If any files are images** (`.jpg`, `.jpeg`, `.png`, `.webp`), ask:
 
 > "Image files detected ({N} images). Enable AI Vision processing for richer content extraction? (yes/no)"
 
 If yes, also ask:
 > "Compress images before vision processing? Reduces token usage. (yes/no)"
 
-Store these choices as `$USE_VISION` and `$COMPRESS_IMAGES` for use in Step 6.
+Store as `$USE_VISION_IMAGES` and `$COMPRESS_IMAGES`.
+
+**If any files are PDFs** (`.pdf`), ask:
+
+> "PDF files detected ({N} PDFs). Do any contain scanned pages, handwriting, or heavy imagery that text extraction would miss? Enable AI Vision for PDFs? (yes/no)"
+
+Store as `$USE_VISION_PDFS`. If the user is unsure, default to **no** — AI Vision is slower and costs more tokens, so only opt in when the PDFs clearly need it.
+
+The vision-enabled batch in Step 6 contains images when `$USE_VISION_IMAGES=yes` and PDFs when `$USE_VISION_PDFS=yes`. Everything else (including images/PDFs where the user said no) goes in the default batch with `is_ocr_enabled=0`.
 
 ---
 
-## Step 6 — Upload Each File
+## Step 6 — Upload Files (Batched via `files[]`)
 
-For each eligible file, compute `REL` as its path relative to `indexed_folder`. If the file is outside `indexed_folder`, use its path relative to the file's own directory.
+The API accepts multiple files per request via the `files[]` multipart parameter. **Always batch** — do NOT issue one request per file. Limits per request:
 
-**Non-image files:**
+- ≤ 50 files
+- ≤ 100MB per file (skip larger files and report them)
+- ≤ 1GB total batch size
+
+For each eligible file, compute `REL` as its path relative to `indexed_folder`. If the file is outside `indexed_folder`, use its path relative to the file's own directory. Pass `REL` as the multipart `filename` so the server preserves directory structure.
+
+Split files into two groups (vision params apply to the whole request, so they cannot be mixed):
+
+1. **Default batch** — all files where vision was not opted in. Always sent with `is_ocr_enabled=0`.
+2. **Vision batch** — images when `$USE_VISION_IMAGES=yes` **and** PDFs when `$USE_VISION_PDFS=yes`. Sent with `is_vision_enabled=true` and `is_ocr_enabled=2`.
+
+Within each group, chunk into batches that fit the limits above, then send one `curl` per batch.
+
+**Default batch (`is_ocr_enabled=0`):**
 
 ```bash
 curl -s --request POST \
   --url "https://app.customgpt.ai/api/v1/projects/${AGENT_ID}/sources" \
   --header "Authorization: Bearer ${API_KEY}" \
-  --form "file=@${ABSOLUTE_PATH};filename=${REL}"
+  --form "files[]=@${ABSOLUTE_PATH_1};filename=${REL_1}" \
+  --form "files[]=@${ABSOLUTE_PATH_2};filename=${REL_2}" \
+  --form "is_ocr_enabled=0"
+  # ...up to 50 files[]= parts
 ```
 
-**Image files with AI Vision enabled:**
+**Vision batch (`is_ocr_enabled=2`) — images and/or PDFs the user opted in:**
 
 ```bash
 curl -s --request POST \
   --url "https://app.customgpt.ai/api/v1/projects/${AGENT_ID}/sources" \
   --header "Authorization: Bearer ${API_KEY}" \
-  --form "file=@${ABSOLUTE_PATH};filename=${REL}" \
+  --form "files[]=@${VISION_PATH_1};filename=${VISION_REL_1}" \
+  --form "files[]=@${VISION_PATH_2};filename=${VISION_REL_2}" \
   --form "is_vision_enabled=true" \
-  --form "ocr_mode=2" \
+  --form "is_ocr_enabled=2" \
   --form "is_vision_compress_image=${COMPRESS_IMAGES}"
 ```
 
-**Image files without AI Vision (or if user said no):** Use the non-image curl above (omit vision fields).
+`is_vision_compress_image` is only meaningful when the batch contains images — include it whenever `$USE_VISION_IMAGES=yes`, otherwise omit it.
 
-HTTP 200 or 201 = success. Report each result: ✓ `{REL}` or ✗ `{REL}` (HTTP {status}).
+HTTP 200 or 201 = batch accepted. The response body lists per-file results; report each as ✓ `{REL}` or ✗ `{REL}` ({reason}). If a whole batch fails, report the HTTP status and retry that batch once.
 
 ---
 
