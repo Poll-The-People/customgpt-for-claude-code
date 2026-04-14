@@ -134,34 +134,48 @@ Store these choices as `$USE_VISION` and `$COMPRESS_IMAGES` for use in Step 6.
 
 ---
 
-## Step 6 — Upload Each File
+## Step 6 — Upload Files (Batched via `files[]`)
 
-For each eligible file, compute `REL` as its path relative to `indexed_folder`. If the file is outside `indexed_folder`, use its path relative to the file's own directory.
+The API accepts multiple files per request via the `files[]` multipart parameter. **Always batch** — do NOT issue one request per file. Limits per request:
 
-**Non-image files:**
+- ≤ 50 files
+- ≤ 100MB per file (skip larger files and report them)
+- ≤ 1GB total batch size
+
+For each eligible file, compute `REL` as its path relative to `indexed_folder`. If the file is outside `indexed_folder`, use its path relative to the file's own directory. Pass `REL` as the multipart `filename` so the server preserves directory structure.
+
+Split files into two groups (vision params apply to the whole request, so they cannot be mixed):
+
+1. **Non-image files** — and image files when `$USE_VISION` is no
+2. **Image files when `$USE_VISION` is yes**
+
+Within each group, chunk into batches that fit the limits above, then send one `curl` per batch.
+
+**Non-image / vision-disabled batch:**
 
 ```bash
 curl -s --request POST \
   --url "https://app.customgpt.ai/api/v1/projects/${AGENT_ID}/sources" \
   --header "Authorization: Bearer ${API_KEY}" \
-  --form "file=@${ABSOLUTE_PATH};filename=${REL}"
+  --form "files[]=@${ABSOLUTE_PATH_1};filename=${REL_1}" \
+  --form "files[]=@${ABSOLUTE_PATH_2};filename=${REL_2}"
+  # ...up to 50 files[]= parts
 ```
 
-**Image files with AI Vision enabled:**
+**Image batch with AI Vision enabled:**
 
 ```bash
 curl -s --request POST \
   --url "https://app.customgpt.ai/api/v1/projects/${AGENT_ID}/sources" \
   --header "Authorization: Bearer ${API_KEY}" \
-  --form "file=@${ABSOLUTE_PATH};filename=${REL}" \
+  --form "files[]=@${IMG_PATH_1};filename=${IMG_REL_1}" \
+  --form "files[]=@${IMG_PATH_2};filename=${IMG_REL_2}" \
   --form "is_vision_enabled=true" \
-  --form "ocr_mode=2" \
+  --form "is_ocr_enabled=2" \
   --form "is_vision_compress_image=${COMPRESS_IMAGES}"
 ```
 
-**Image files without AI Vision (or if user said no):** Use the non-image curl above (omit vision fields).
-
-HTTP 200 or 201 = success. Report each result: ✓ `{REL}` or ✗ `{REL}` (HTTP {status}).
+HTTP 200 or 201 = batch accepted. The response body lists per-file results; report each as ✓ `{REL}` or ✗ `{REL}` ({reason}). If a whole batch fails, report the HTTP status and retry that batch once.
 
 ---
 

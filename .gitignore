@@ -3,3 +3,6 @@
 .claude/settings.local.json
 CLAUDE.md
 skill-review.md
+.env
+.env.*
+!.env.example
